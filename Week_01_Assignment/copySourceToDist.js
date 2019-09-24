@@ -1,28 +1,14 @@
 const fs = require('fs');
 const path = require('path');
 
-const sources = [];
-let fileList = [];
+if (process.argv.length < 4) {
+  console.log('Not sufficient amount of parameters, insert at least input and output paths');
+  process.exit();
+}
 
-// Collect this folder valid subdirectories with absolute path to 'source'-array
-process.argv.forEach((sourceName, index, array) => {
-  if (array.length === 2 && index === 1) {
-    const defaultPath = path.join(__dirname, 'source/');
-    return (
-      fs.existsSync(defaultPath) &&
-      fs.lstatSync(defaultPath).isDirectory() &&
-      sources.push(defaultPath)
-    );
-  }
-  if (index > 1) {
-    const fullSourcePath = path.join(__dirname, sourceName);
-    fs.existsSync(fullSourcePath) &&
-      fs.lstatSync(fullSourcePath).isDirectory() &&
-      sources.push(fullSourcePath);
-  }
-});
-console.log('SourcesArray');
-sources.forEach(s => console.log(`${sources.indexOf(s)}: ${s}`));
+const sources = process.argv.slice(2);
+const destination = sources.pop();
+
 
 // Scan and collect to 'fileList' recursively each file in given directory
 const readDir = dir => {
@@ -32,28 +18,25 @@ const readDir = dir => {
     if (fs.lstatSync(itemFullPath).isDirectory()) {
       readDir(itemFullPath);
     } else {
-      fileList = [...fileList, itemFullPath];
+      const fileName = path.basename(itemFullPath);
+      const firstLetter = fileName.trim().charAt(0);
+      const destPath = path.join(__dirname, destination);
+      const letterSubFolder = path.join(destPath, firstLetter);
+
+      if (!fs.existsSync(destPath)) {
+        fs.mkdirSync(destPath);
+      }
+      if (!fs.existsSync(letterSubFolder)) {
+        fs.mkdirSync(letterSubFolder);
+      }
+      fs.copyFileSync(itemFullPath, path.join(letterSubFolder, fileName));
+      console.log(`${firstLetter}\t ${itemFullPath}`);
     }
   });
 };
 
-sources.forEach(dir => {
-  readDir(dir);
-});
-// Create 'Dist' folder in current directory and as Dist subdirectories first character of each filename in 'fileList' + copy file to corresponding letter-folder
-fileList.forEach(fullPath => {
-  const fileName = path.basename(fullPath);
-  const firstLetter = fileName.trim().charAt(0);
-  const destPath = path.join(__dirname, 'Dist/');
-  const letterSubFolder = path.join(destPath, firstLetter);
-
-  if (!fs.existsSync(destPath)) {
-    fs.mkdirSync(destPath);
+sources.forEach(s => {
+  if (fs.existsSync(s) && fs.lstatSync(s).isDirectory()) {
+    readDir(s);
   }
-  if (!fs.existsSync(letterSubFolder)) {
-    fs.mkdirSync(letterSubFolder);
-  }
-  fs.copyFileSync(fullPath, path.join(letterSubFolder, fileName));
-
-  console.log(`${firstLetter}\t ${fullPath}`);
 });
