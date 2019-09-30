@@ -17,19 +17,18 @@ let interval = +params[1] * 1000;
 http
   .createServer((req, res) => {
     console.log('Listening at port 8080');
-    let end = false;
-    
-    setInterval(() => {
-      if (end) {
-        res.end()
+    const endAt = new Date(new Date().getTime() + duration);
+    const runInterval = setInterval(() => {
+      const current = new  Date();
+      if (endAt < current) {
+        clearInterval(runInterval);
       } else {
-        console.log(new Date().toISOString());
+        console.log(current.toISOString());
       }
     }, interval);
-    
+
     setTimeout(() => {
       res.write(new Date().toISOString());
-      end = true;
       res.end();
     }, duration);
 
