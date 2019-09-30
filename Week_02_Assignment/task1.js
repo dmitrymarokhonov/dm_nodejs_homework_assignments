@@ -19,20 +19,14 @@ http
     console.log('Listening at port 8080');
     const endAt = new Date(new Date().getTime() + duration);
     const runInterval = setInterval(() => {
-      const current = new  Date();
+      const current = new Date();
       if (endAt < current) {
         clearInterval(runInterval);
+        res.write(new Date().toISOString());
+        res.end();
       } else {
         console.log(current.toISOString());
       }
     }, interval);
-
-    setTimeout(() => {
-      res.write(new Date().toISOString());
-      res.end();
-    }, duration);
-
-
   })
   .listen(8080);
-
