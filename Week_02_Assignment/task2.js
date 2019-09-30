@@ -1,39 +1,49 @@
-const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
-const params = process.argv.slice(2);
-params.length < 2 && exit();
-params.forEach(p => isNaN(p) && exit());
-
-function exit() {
+if (process.argv.length < 4) {
   console.log(
-    'Please insert numeric parameters (in seconds) for date print duration and intervals between each output'
+    'Not sufficient amount of parameters, insert at least input and output paths'
   );
   process.exit();
 }
 
-let duration = +params[0] * 1000;
-let interval = +params[1] * 1000;
+const sources = process.argv.slice(2);
+const destination = sources.pop();
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+const readDir = dir => {
+  return new Promise((resolve, reject) => {
+    try {
+      const files = fs.readdirSync(dir);
+      files.forEach(item => {
+        let itemFullPath = path.join(dir, item);
+        if (fs.lstatSync(itemFullPath).isDirectory()) {
+          readDir(itemFullPath);
+        } else {
+          const fileName = path.basename(itemFullPath);
+          const firstLetter = fileName.trim().charAt(0);
+          const destPath = path.join(__dirname, destination);
+          const letterSubFolder = path.join(destPath, firstLetter);
 
-http
-  .createServer(async (req, res) => {
-    console.log('Listening at port 8080');
-    debugger;
-    const endAt = new Date(new Date().getTime() + duration);
-    let end = false;
-    while (!end) {
-      const current = new Date();
-      if (current > endAt) {
-        end = true;
-      } else {
-        console.log(current);
-        await sleep(interval);
-      }
+          if (!fs.existsSync(destPath)) {
+            fs.mkdirSync(destPath);
+          }
+          if (!fs.existsSync(letterSubFolder)) {
+            fs.mkdirSync(letterSubFolder);
+          }
+          fs.copyFileSync(itemFullPath, path.join(letterSubFolder, fileName));
+          console.log(`${firstLetter}\t ${itemFullPath}`);
+        }
+      });
+      resolve('source ' + dir + ' - distributed succesfully!');
+    } catch (err) {
+      reject(err);
     }
-    res.write(new Date().toISOString());
-    res.end();
-  })
-  .listen(8080);
+  });
+};
+
+sources.forEach(s => {
+  readDir(s)
+    .then(res => console.log(res))
+    .catch(err => console.log(err));
+});
