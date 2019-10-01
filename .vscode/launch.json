@@ -9,7 +9,7 @@
             "request": "launch",
             "name": "Launch Program",
             "program": "${workspaceFolder}/app.js",
-            "args": ["50", "0.5"]
+            "args": ["/mnt/c/Users/dmmar1/Downloads/be915cba-5502-48f0-a8be-ab5f35e70479/webinar-express", "./taskassadf"]
         }
     ]
 }

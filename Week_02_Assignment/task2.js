@@ -1,5 +1,9 @@
 const fs = require('fs');
 const path = require('path');
+const { promisify } = require('util');
+const asyncCopyFile = promisify(fs.copyFile);
+const asyncExists = promisify(fs.exists);
+const asyncMkdir = promisify(fs.mkdir);
 
 if (process.argv.length < 4) {
   console.log(
@@ -11,39 +15,59 @@ if (process.argv.length < 4) {
 const sources = process.argv.slice(2);
 const destination = sources.pop();
 
-const readDir = dir => {
+function asyncReadDir(path) {
   return new Promise((resolve, reject) => {
-    try {
-      const files = fs.readdirSync(dir);
-      files.forEach(item => {
-        let itemFullPath = path.join(dir, item);
-        if (fs.lstatSync(itemFullPath).isDirectory()) {
-          readDir(itemFullPath);
-        } else {
-          const fileName = path.basename(itemFullPath);
-          const firstLetter = fileName.trim().charAt(0);
-          const destPath = path.join(__dirname, destination);
-          const letterSubFolder = path.join(destPath, firstLetter);
+    fs.readdir(path, function(err, data) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(data);
+      }
+    });
+  });
+}
 
-          if (!fs.existsSync(destPath)) {
-            fs.mkdirSync(destPath);
-          }
-          if (!fs.existsSync(letterSubFolder)) {
-            fs.mkdirSync(letterSubFolder);
-          }
-          fs.copyFileSync(itemFullPath, path.join(letterSubFolder, fileName));
-          console.log(`${firstLetter}\t ${itemFullPath}`);
-        }
-      });
-      resolve('source ' + dir + ' - distributed succesfully!');
-    } catch (err) {
-      reject(err);
+function asyncLstatIsDirectory(path) {
+  return new Promise((resolve, reject) => {
+    fs.lstat(path, function(err, stats) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(stats.isDirectory());
+      }
+    });
+  });
+}
+
+const readDir = async dir => {
+  const files = await asyncReadDir(dir);
+  files.forEach(async item => {
+    let itemFullPath = path.join(dir, item);
+    const pathIsDirectory = await asyncLstatIsDirectory(itemFullPath);
+    if (pathIsDirectory) {
+      readDir(itemFullPath);
+    } else {
+      const fileName = path.basename(itemFullPath);
+      const firstLetter = fileName.trim().charAt(0);
+      const destPath = path.join(__dirname, destination);
+      const letterSubFolder = path.join(destPath, firstLetter);
+
+      const destExists = await asyncExists(destPath);
+      const letterSubFolderExists = await asyncExists(letterSubFolder);
+
+      if (!destExists) {
+        await asyncMkdir(destPath);
+      }
+      if (!letterSubFolderExists) {
+        await asyncMkdir(letterSubFolder);
+      }
+
+      await asyncCopyFile(itemFullPath, path.join(letterSubFolder, fileName));
+      console.log(`${firstLetter}\t ${itemFullPath}`);
     }
   });
 };
 
-sources.forEach(s => {
-  readDir(s)
-    .then(res => console.log(res))
-    .catch(err => console.log(err));
+sources.forEach(async s => {
+  (await asyncLstatIsDirectory(s)) && readDir(s);
 });
