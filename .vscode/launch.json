@@ -1,0 +1,15 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Program",
+            "program": "${workspaceFolder}/app.js",
+            "args": ["/mnt/c/Users/dmmar1/Downloads/be915cba-5502-48f0-a8be-ab5f35e70479/webinar-express", "./taskassadf"]
+        }
+    ]
+}
